@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rat Brain GUI - Dataset Statistics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    .stat-card {
+      margin-bottom: 20px;
+    }
+    .stat-card h3 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 10px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85em;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-left: 10px;
+    }
+    .status-equal, .status-100-proportional { background-color: var(--success-color); color: var(--bg-card); }
+    .status-roughly-equal, .status-roughly-proportional { background-color: #ffc107; color: var(--text-main); }
+    .status-unbalanced { background-color: var(--danger-color); color: var(--bg-card); }
+    
+    .collapsible {
+      cursor: pointer;
+      padding: 18px;
+      width: 100%;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 1.17em;
+      background-color: var(--bg-disabled);
+      border-radius: var(--radius-sm);
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .active, .collapsible:hover {
+      background-color: var(--border-light);
+    }
+    .collapsible:after {
+      content: '\25BC'; /* Down arrow */
+      color: var(--text-muted);
+      font-weight: bold;
+      float: right;
+      margin-left: 5px;
+      transition: transform 0.2s ease-out;
+    }
+    .active:after {
+      transform: rotate(180deg);
+    }
+    .content {
+      padding: 0 18px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease-out;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    }
+    
+    table.stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table.stats-table th, table.stats-table td {
+      border: 1px solid var(--border-dark);
+      padding: 8px;
+      text-align: left;
+    }
+    table.stats-table th {
+      background-color: var(--bg-disabled);
+    }
+    <style>
+      /* Tab styles */
+      .tab {
+        overflow: hidden;
+        border: 1px solid #ccc;
+        background-color: #f1f1f1;
+        border-radius: 8px 8px 0 0;
+        margin-top: 20px;
+      }
+      .tab button {
+        background-color: inherit;
+        float: left;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        transition: 0.3s;
+        font-size: 17px;
+        font-weight: bold;
+      }
+      .tab button:hover {
+        background-color: #ddd;
+      }
+      .tab button.active {
+        background-color: #fff;
+        border-bottom: 2px solid #007bff;
+      }
+      .tabcontent {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        background-color: #fff;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-content">
+        <h1 class="main-title">📊 Dataset Statistics</h1>
+        <div class="header-nav">
+          <a href="{{ url_for('index') }}">Home</a>
+          <a href="{{ url_for('compare_page') }}">Compare Rats</a>
+          <a href="{{ url_for('quicktrace_page') }}">Quick Trace</a>
+        </div>
+      </div>
+    </div>
+
+    <h2>Tracing Checker Features</h2>
+    
+    {% if data.project_scans_verification %}
+      <div class="alert alert-danger">
+        <h3 style="margin-top: 0;">Project Scans Verification</h3>
+        <p>⚠️ Some rats in the main dataset have fewer regions than others:</p>
+        <ul>
+          {% for warning in data.project_scans_verification %}
+            <li><strong>{{ warning.rat }}:</strong> {{ warning.message }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <div class="alert alert-success">
+        <h3 style="margin-top: 0;">Project Scans Verification</h3>
+        <p>✅ All rats in the main dataset have an equal number of regions.</p>
+      </div>
+    {% endif %}
+
+    {% for ds_name, problems in data.problems.items() %}
+      {% set has_errors = problems.missing_images or problems.missing_tracings or problems.missing_masks or problems.missing_info or problems.extra_stuff or problems.files_in_root %}
+      
+      <div class="alert {% if has_errors %}alert-danger{% else %}alert-success{% endif %}">
+        <h3 style="margin-top: 0;">{{ ds_name }} Dataset Validation</h3>
+        
+        {% if not has_errors %}
+          <p>✅ All expected files are present and no extra files were found.</p>
+        {% else %}
+          <p>❌ Issues found in the dataset:</p>
+          <ul>
+            {% if problems.missing_tracings %}
+              <li><strong>Missing Tracings:</strong> {{ problems.missing_tracings | length }} folders ({{ problems.missing_tracings | join(', ') }})</li>
+            {% endif %}
+            {% if problems.missing_images %}
+              <li><strong>Missing Images:</strong> {{ problems.missing_images | length }} folders ({{ problems.missing_images | join(', ') }})</li>
+            {% endif %}
+            {% if problems.missing_masks %}
+              <li><strong>Missing Masks:</strong> {{ problems.missing_masks | length }} folders ({{ problems.missing_masks | join(', ') }})</li>
+            {% endif %}
+            {% if problems.missing_info %}
+              <li><strong>Missing Info.txt:</strong> {{ problems.missing_info | length }} folders ({{ problems.missing_info | join(', ') }})</li>
+            {% endif %}
+            {% if problems.extra_stuff %}
+              <li><strong>Extra Files Found:</strong> {{ problems.extra_stuff | length }} folders ({{ problems.extra_stuff | join(', ') }})</li>
+            {% endif %}
+            {% if problems.files_in_root %}
+              <li><strong>Files in Root:</strong> Found files directly in the root directory (should only contain folders).</li>
+            {% endif %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <h2>Dataset Distribution Statistics</h2>
+    
+    <div class="tab">
+      {% for ds_name in data.datasets.keys() %}
+        <button class="tablinks" onclick="openDataset(event, '{{ ds_name }}')" {% if loop.first %}id="defaultOpen"{% endif %}>{{ ds_name }} Dataset</button>
+      {% endfor %}
+      <div style="clear: both;"></div>
+    </div>
+
+    {% for ds_name, ds_data in data.datasets.items() %}
+    <div id="{{ ds_name }}" class="tabcontent" style="clear: both;">
+      <p style="margin-top: 10px; clear: both;">Total Images Analyzed: <strong>{{ ds_data.total_images }}</strong></p>
+
+      <!-- First Data Section: Rat Distribution -->
+      <div class="stat-card">
+        <h3>
+          1) Rat Distribution
+          {% set status = ds_data.statistics.rat_distribution.status | replace(' ', '-') | replace('%', '') %}
+          <span class="status-badge status-{{ status }}">{{ ds_data.statistics.rat_distribution.status }}</span>
+        </h3>
+        <p><em>Check: The number of images per rat should be proportional to the number of regions in the underlying data for that rat.</em></p>
+        
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Rat ID</th>
+              <th>Image Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rat, count in ds_data.statistics.rat_distribution.counts.items() %}
+            <tr>
+              <td>{{ rat }}</td>
+              <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Second Data Section: Region Distribution -->
+      <div class="stat-card">
+        <h3>
+          2) Region Distribution
+          {% set status = ds_data.statistics.region_distribution.status | replace(' ', '-') %}
+          <span class="status-badge status-{{ status }}">{{ ds_data.statistics.region_distribution.status }}</span>
+        </h3>
+        <p><em>Check: Equal distribution across regions (images per region should be equal).</em></p>
+        
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Region</th>
+              <th>Image Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for region, count in ds_data.statistics.region_distribution.counts.items() %}
+            <tr>
+              <td>{{ region }}</td>
+              <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Third Data Section: Slice / Bregma Distribution (Collapsible) -->
+      <div class="stat-card" style="padding: 0;">
+        <button class="collapsible" style="border-radius: 8px; margin-bottom: 0;">
+          <h3 style="margin: 0; border: none; padding: 0; display: inline-block;">
+            3) Slice Distribution
+            {% set status = ds_data.statistics.slice_distribution.status | replace(' ', '-') %}
+            <span class="status-badge status-{{ status }}" style="float: none; margin-left: 10px;">{{ ds_data.statistics.slice_distribution.status }}</span>
+          </h3>
+        </button>
+        <div class="content" style="border: none; border-radius: 0 0 8px 8px;">
+          <div style="padding: 15px 20px;">
+            <p><em>Check: Equal distribution across slices (images per slice should be equal).</em></p>
+            
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Slice (Bregma)</th>
+                  <th>Image Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for slice, count in ds_data.statistics.slice_distribution.counts.items() %}
+                <tr>
+                  <td>{{ slice }}</td>
+                  <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <h4 style="margin-top: 20px;">Unique (Rat, Bregma) Combinations</h4>
+            <p><em>Consistency check across unique rat and bregma combinations.</em></p>
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Rat - Bregma</th>
+                  <th>Image Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for combo, count in ds_data.statistics.rat_bregma_distribution.counts.items() %}
+                <tr>
+                  <td>{{ combo }}</td>
+                  <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <script>
+      function openDataset(evt, datasetName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+          tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(datasetName).style.display = "block";
+        evt.currentTarget.className += " active";
+      }
+
+      // Get the element with id="defaultOpen" and click on it
+      var defaultOpenBtn = document.getElementById("defaultOpen");
+      if (defaultOpenBtn) {
+        defaultOpenBtn.click();
+      }
+
+      var coll = document.getElementsByClassName("collapsible");
+      var i;
+
+      for (i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function() {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.maxHeight){
+            content.style.maxHeight = null;
+          } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+          } 
+        });
+      }
+    </script>
+  </div>
+</body>
+</html>

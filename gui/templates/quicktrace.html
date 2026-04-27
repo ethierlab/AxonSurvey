@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rat Brain GUI - Quick Trace</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Quick Trace</h1>
+    
+    <div class="card" style="margin-bottom: var(--spacing-xl);">
+      <h3>Trace Image from Path</h3>
+      <form method="POST" id="trace-form">
+        <div class="form-group">
+          <label for="image_path">Enter image file path:</label>
+          <div class="input-group">
+            <input type="text" class="form-control" id="image_path" name="image_path" placeholder="e.g., C:\Users\YourName\Documents\image.tif" required>
+            <input type="file" class="form-control" id="file_browser" accept=".tif,.tiff,.jpg,.jpeg,.png" style="display: none;">
+            <button type="button" class="btn btn-secondary" id="navigate-btn" title="Opens file dialog for navigation only - you still need to copy the path manually" style="white-space: nowrap;">Open File Location</button>
+          </div>
+          <div class="alert alert-info" style="margin-top: 0.75rem;">
+            <strong>How to get the file path:</strong> Right-click your .tif file in Windows File Explorer and select "Copy as path"
+            {% if user_language == 'fr' %}(ou "Accéder en tant que chemin d'accès"){% endif %},
+            then paste it into the field above.
+          </div>
+          <div class="alert alert-warning" style="margin-top: 0.75rem;">
+            <strong>Important:</strong> The file selection button above will NOT work for this feature. You must manually enter the full file path (e.g., C:\Users\YourName\Documents\image.tif).
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Trace Image</button>
+      </form>
+    </div>
+
+    <div id="loading-overlay" style="display: none;">
+      <div class="loading-box">
+        <p>⏳ Tracing in progress... Please wait.</p>
+      </div>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-danger" style="margin: var(--spacing-md) 0;">
+        <strong>Error:</strong> {{ error }}
+      </div>
+    {% endif %}
+
+    {% if result_image %}
+      <div class="card" style="margin-top: var(--spacing-xl);">
+        <h3 style="margin-top: 0; color: var(--text-heading);">Results</h3>
+        
+        <!-- Traced Result Section -->
+        <div class="card" style="margin-bottom: var(--spacing-md);">
+          <h4 style="margin-top: 0; margin-bottom: var(--spacing-md); color: var(--text-label); text-align: center;">Tracing Result</h4>
+          <div class="image-container">
+            <img src="{{ url_for('static', filename='quicktrace/traced_result.jpg') }}" alt="Traced Result">
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-action="open-tab" data-url="{{ url_for('static', filename='quicktrace/traced_result.jpg') }}">Open in New Tab</button>
+              <button type="button" class="btn btn-secondary" data-action="copy-path" data-path="{{ high_quality_file_path }}">Copy Path</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 30px;">
+          <a href="{{ result_image }}" class="btn btn-success">Download Result</a>
+        </div>
+
+        <!-- Original Image Section -->
+        {% if original_image %}
+        <div class="card">
+          <h4 style="margin-top: 0; margin-bottom: var(--spacing-md); color: var(--text-label); text-align: center;">Original Image</h4>
+          <div class="image-container">
+            <img src="{{ url_for('static', filename='quicktrace/original_image.jpg') }}" alt="Original Image">
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-action="open-tab" data-url="{{ url_for('static', filename='quicktrace/original_image.jpg') }}">Open in New Tab</button>
+              <button type="button" class="btn btn-secondary" data-action="copy-path" data-path="{{ original_image_file_path }}">Copy Path</button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        
+      </div>
+    {% endif %}
+
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">← Back to Index</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rat Brain GUI - Group Comparison</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container compare-page">
+    <h1>🔬 Compare Rats</h1>
+    
+    <div class="alert alert-info">
+      <strong>Instructions:</strong> Create comparison groups by selecting rats and regions. Each group can contain multiple rats and regions. Define at least 2 groups to generate a comparison.
+    </div>
+
+    <!-- Experiment Metadata -->
+    <div class="experiment-metadata">
+      <h3>📋 Experiment Information</h3>
+      <div class="metadata-fields">
+        <div class="field-group">
+          <label for="experiment_name">Experiment Name:</label>
+          <input type="text" class="form-control" id="experiment_name" name="experiment_name" placeholder="Enter experiment name" required>
+        </div>
+        <div class="field-group">
+          <label for="experimenter_name">Experimenter Name:</label>
+          <input type="text" class="form-control" id="experimenter_name" name="experimenter_name" placeholder="Enter experimenter name" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create New Group Button -->
+    <div class="create-group-action">
+      <button type="button" class="btn btn-primary" onclick="createNewGroup()">Create New Group</button>
+    </div>
+
+    <!-- Group Tabs -->
+    <div class="group-tabs" id="groupTabs">
+      <div class="group-tab active" data-group="1">Group 1</div>
+    </div>
+
+    <!-- Group Contents -->
+    <div id="groupContents">
+      <div class="group-content active" data-group="1">
+        <div class="group-name-section">
+          <h3>📝 Group Name</h3>
+          <div class="field-group">
+            <input type="text" class="form-control" id="group-name-1" name="group-name-1" placeholder="Enter group name" value="Group 1">
+          </div>
+        </div>
+        
+        <div class="selector-section">
+          <h3>🐭 Rats Selector</h3>
+          <div class="checkbox-list">
+            <div class="checkbox-item">
+              <input type="checkbox" id="all-rats-1" name="all-rats-1" onchange="toggleAllRats(1)">
+              <label for="all-rats-1"><strong>All rats</strong></label>
+            </div>
+            {% for rat in rats %}
+            <div class="checkbox-item">
+              <input type="checkbox" id="rat-{{ rat }}-1" name="rats-1" value="{{ rat }}" onchange="updateAllRatsCheckbox(1)">
+              <label for="rat-{{ rat }}-1">{{ rat }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="selector-section">
+          <h3>🧠 Regions Selector</h3>
+          <div class="checkbox-list">
+            <div class="checkbox-item">
+              <input type="checkbox" id="all-regions-1" name="all-regions-1" onchange="toggleAllRegions(1)">
+              <label for="all-regions-1"><strong>All regions</strong></label>
+            </div>
+            {% for region in regions %}
+            <div class="checkbox-item">
+              <input type="checkbox" id="region-{{ region }}-1" name="regions-1" value="{{ region }}" onchange="updateAllRegionsCheckbox(1)">
+              <label for="region-{{ region }}-1">{{ region }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="group-actions">
+          <button type="button" class="btn btn-danger" onclick="deleteGroup(1)">Delete Group</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate Comparison Button -->
+    <div class="generate-comparison-action">
+      <button type="button" class="btn btn-success" onclick="generateComparison()">Generate Comparison</button>
+    </div>
+
+    <!-- Output Area -->
+    <div class="output-area" id="outputArea">
+      <div class="placeholder-text" id="placeholderText">
+        Comparison results will appear here after clicking "Generate Comparison"
+      </div>
+      <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>Processing comparison...</p>
+        <p>It could take a while.</p>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">← Back to all rats</a>
+    </div>
+  </div>
+
+  <!-- Data elements for JavaScript -->
+  <script id="rats-data" type="application/json">{{ rats | tojson | safe }}</script>
+  <script id="regions-data" type="application/json">{{ regions | tojson | safe }}</script>
+  
+  <!-- JavaScript file -->
+  <script src="{{ url_for('static', filename='compare.js') }}"></script>
+</body>
+</html> 

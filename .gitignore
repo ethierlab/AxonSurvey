@@ -1,0 +1,14 @@
+*.tif
+*.lsm
+*.zip
+*.pdf
+*.pth
+*.png
+*.jpg
+*.pyc
+__pycache__/
+.vscode/
+.cursor/
+data/figures/
+data/experiments/
+data/

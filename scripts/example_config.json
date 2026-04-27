@@ -1,0 +1,31 @@
+{
+    "rat_list": [
+        "rat301",
+        "rat302",
+        "new_rat"
+    ],
+    "bregma_dict": {
+        "rat301": [
+            "b516",
+            "b468",
+            "b420"
+        ],
+        "rat302": [
+            "b252",
+            "b521"
+        ],
+        "new_rat": [
+            "b252",
+            "b521",
+            "b533"
+        ]
+    },
+    "subregion_list": [
+        "contra_inner",
+        "contra_outer",
+        "ipsi_inner",
+        "ipsi_outer"
+    ],
+    "base_path": "./data/project_scans_v2"
+}
+
