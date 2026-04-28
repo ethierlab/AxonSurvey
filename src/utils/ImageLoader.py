@@ -62,8 +62,8 @@ class ImageLoader:
         self.check_imgs_shape()
         
 
-        if self.img_shape != self.final_img_size:
-            assert self.final_img_size < self.img_shape[0] and self.final_img_size < self.img_shape[1], "center_sample_size must be smaller than the img shape"
+        if self.final_img_size is not None and (self.img_shape[0] != self.final_img_size or self.img_shape[1] != self.final_img_size):
+            assert self.final_img_size <= self.img_shape[0] and self.final_img_size <= self.img_shape[1], "center_sample_size must be smaller than or equal to the img shape"
 
             images = []
             masks = []

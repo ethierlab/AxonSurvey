@@ -2,8 +2,12 @@
 """
 Data Sampling Script
 
-This script samples image patches from your project data to create training and test datasets.
+This script samples image patches from your Images Dataset to create Tracings Datasets (training and test sets).
 It supports random sampling and (future) neural network-based sampling.
+
+Input Requirements:
+- Valid Images Dataset directory containing raw full-size scans (input)
+- Pre-trained model file (.pth) (if using --nn sampling)
 
 Usage:
     # Random sampling
@@ -11,6 +15,10 @@ Usage:
     
     # Neural network-based sampling (future feature)
     python scripts/2-sample_data.py --nn --model-path ./data/trained_models/default_model.pth --input ./data/project_scans --output ./data/tracings/train --size 100
+    
+    # Minimal test (generate fake tracings for train and test)
+    python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_train --size 50 --patch-size 128 --test-fake-tracings
+    python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_test --size 20 --patch-size 128 --test-fake-tracings
 
 For more information, see the README.md in the scripts folder.
 """
@@ -29,13 +37,13 @@ from src.experiments.RatGroup import RatGroup, ALL_RATS, ALL_REGIONS
 
 
 def create_random_sampling_dataset(input_dir, output_dir, sample_size, patch_size, channel="th", 
-                                   stratify_regions=True, groups=None):
+                                   stratify_regions=True, groups=None, test_fake_tracings=False):
     """
-    Create a dataset using random sampling.
+    Create a Tracings Dataset using random sampling.
     
     Args:
-        input_dir: Directory containing raw project images
-        output_dir: Directory to save sampled dataset
+        input_dir: Directory containing the Images Dataset (raw full-size scans)
+        output_dir: Directory to save the sampled Tracings Dataset
         sample_size: Number of samples to create
         patch_size: Size of each patch (assumes square patches)
         channel: Channel name to sample from (default: "th")
@@ -75,26 +83,40 @@ def create_random_sampling_dataset(input_dir, output_dir, sample_size, patch_siz
         sampling_strategy=sampling_strategy
     )
     
-    print(f"\nSampling {sample_size} patches...")
-    sample_saver.create_dataset(sample_size)
-    print(f"✓ Dataset created successfully in {output_dir}")
+    if test_fake_tracings:
+        sample_saver.test_fake_tracings = True
+        print("  NOTE: Generating fake tracings for testing purposes.")
     
+    print(f"\nSampling {sample_size} patches...")
+    actual_size, path_counts = sample_saver.create_dataset(sample_size)
+    print(f"✓ Dataset created successfully in {output_dir}")
+    print(f"  Generated {actual_size} total samples.")
+    
+    if actual_size > 0:
+        print("\n  Breakdown by source region:")
+        for path, count in sorted(path_counts.items()):
+            try:
+                short_path = os.path.join(*Path(path).parts[-3:])
+            except:
+                short_path = path
+            print(f"    - {short_path}: {count} samples")
+            
     print("\nNext steps:")
-    print("  1. Manually trace axons in the sampled images using NeuronJ or similar tool")
+    print("  1. Manually trace axons in the sampled patches using NeuronJ or similar tool")
     print("  2. Save tracings as 'tracings.tif' in each sample folder")
     print("  3. Run scripts/3-train_model.py to train a neural network on your traced data")
 
 
 def create_nn_sampling_dataset(input_dir, output_dir, model_path, sample_size, patch_size, 
-                               channel="th", groups=None):
+                               channel="th", groups=None, test_fake_tracings=False):
     """
-    Create a dataset using neural network-based sampling (informative sampling).
+    Create a Tracings Dataset using neural network-based sampling (informative sampling).
     
     NOTE: This is a placeholder for future implementation. Currently falls back to random sampling.
     
     Args:
-        input_dir: Directory containing raw project images
-        output_dir: Directory to save sampled dataset
+        input_dir: Directory containing the Images Dataset (raw full-size scans)
+        output_dir: Directory to save the sampled Tracings Dataset
         model_path: Path to trained model (.pth file)
         sample_size: Number of samples to create
         patch_size: Size of each patch
@@ -112,7 +134,8 @@ def create_nn_sampling_dataset(input_dir, output_dir, model_path, sample_size, p
         sample_size=sample_size,
         patch_size=patch_size,
         channel=channel,
-        groups=groups
+        groups=groups,
+        test_fake_tracings=test_fake_tracings
     )
     
     print("\nFuture implementation will:")
@@ -123,7 +146,7 @@ def create_nn_sampling_dataset(input_dir, output_dir, model_path, sample_size, p
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sample image patches to create training/test datasets",
+        description="Sample image patches from your Images Dataset to create Tracings Datasets",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -135,6 +158,10 @@ Examples:
   
   # Neural network-based sampling (when implemented)
   python scripts/2-sample_data.py --nn --model-path ./data/trained_models/default_model.pth --input ./data/project_scans --output ./data/tracings/train --size 200
+  
+  # Minimal test (generate fake tracings for train and test)
+  python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_train --size 50 --patch-size 128 --test-fake-tracings
+  python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_test --size 20 --patch-size 128 --test-fake-tracings
 
 Note: The output directory must be empty or not exist.
         """
@@ -158,14 +185,14 @@ Note: The output directory must be empty or not exist.
         '--input',
         type=str,
         required=True,
-        help='Input directory containing raw project images'
+        help='Input directory containing the Images Dataset (raw full-size scans)'
     )
     
     parser.add_argument(
         '--output',
         type=str,
         required=True,
-        help='Output directory for sampled dataset'
+        help='Output directory for the sampled Tracings Dataset'
     )
     
     parser.add_argument(
@@ -202,6 +229,12 @@ Note: The output directory must be empty or not exist.
         help='Disable region stratification (sample proportionally to area)'
     )
     
+    parser.add_argument(
+        '--test-fake-tracings',
+        action='store_true',
+        help='Generate fake random tracings for testing the training pipeline without manual labeling'
+    )
+    
     args = parser.parse_args()
     
     # Validate arguments
@@ -227,7 +260,8 @@ Note: The output directory must be empty or not exist.
                 sample_size=args.size,
                 patch_size=args.patch_size,
                 channel=args.channel,
-                stratify_regions=not args.no_stratify
+                stratify_regions=not args.no_stratify,
+                test_fake_tracings=args.test_fake_tracings
             )
         elif args.nn:
             create_nn_sampling_dataset(
@@ -236,7 +270,8 @@ Note: The output directory must be empty or not exist.
                 model_path=args.model_path,
                 sample_size=args.size,
                 patch_size=args.patch_size,
-                channel=args.channel
+                channel=args.channel,
+                test_fake_tracings=args.test_fake_tracings
             )
     except Exception as e:
         print(f"Error: {e}")

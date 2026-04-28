@@ -2,12 +2,19 @@
 """
 Neural Network Training Script
 
-This script trains a UNet model for axon segmentation on your labeled dataset.
+This script trains a UNet model for axon segmentation on your Tracings Datasets.
+
+Input Requirements:
+- Valid training Tracings Dataset directory with ground truth tracings (input)
+- Valid test Tracings Dataset directory with ground truth tracings (input)
 
 Usage:
-    python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 50
+    python scripts/3-train_model.py --epochs 50
     
     python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 50 --batch-size 32 --learning-rate 0.0001
+    
+    # Minimal test
+    python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth --epochs 1 --batch-size 10
 
 For more information, see the README.md in the scripts folder.
 """
@@ -56,8 +63,8 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
     Train a UNet model for axon segmentation.
     
     Args:
-        train_dir: Directory containing training dataset
-        test_dir: Directory containing test dataset
+        train_dir: Directory containing training Tracings Dataset
+        test_dir: Directory containing test Tracings Dataset
         output_path: Path to save trained model
         epochs: Number of training epochs
         batch_size: Batch size for training
@@ -103,6 +110,9 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
         from torch.nn import BCEWithLogitsLoss
         criterion = BCEWithLogitsLoss()
         print("  Using BCEWithLogitsLoss (clDice not available)")
+        print("  * Note: To use clDice loss (recommended for tubular structures like axons),")
+        print("  * clone the repository into your project root by running:")
+        print("  * git clone https://github.com/jocpae/clDice.git")
     
     # Setup scheduler
     scheduler_func = None
@@ -161,10 +171,10 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
         save_model_metadata(output_path, metadata, metadata_dir=metadata_dir)
         
         print("=" * 60)
-        print(f"✓ Training completed successfully!")
+        print(f"Training completed successfully!")
         print(f"  Model saved to: {output_path}")
         print(f"\nNext steps:")
-        print(f"  1. Use this model for inference: python scripts/4-run_inference.py --model {output_path}")
+        print(f"  1. Use this model for inference: python scripts/4-run_inference.py --model {output_path} --input ./data/project_scans")
         print(f"  2. Or use it for NN-based sampling: python scripts/2-sample_data.py --nn --model-path {output_path}")
         
     except Exception as e:
@@ -181,30 +191,33 @@ def main():
         epilog="""
 Examples:
   # Basic training with default parameters
-  python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 50
+  python scripts/3-train_model.py --epochs 50
   
   # Training with custom parameters
   python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 100 --batch-size 32 --learning-rate 0.0001 --input-size 256
   
   # Quick test training (few epochs)
   python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/test_model.pth --epochs 5
+  
+  # Minimal test (fast execution, minimal resources)
+  python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth --epochs 1 --batch-size 10
 
-Note: The training and test directories should contain labeled datasets created by scripts/2-sample_data.py
+Note: The training and test directories should contain Tracings Datasets created by scripts/2-sample_data.py
         """
     )
     
     parser.add_argument(
         '--train-dir',
         type=str,
-        required=True,
-        help='Directory containing training dataset'
+        default='./data/tracings/train',
+        help='Directory containing training Tracings Dataset (default: ./data/tracings/train)'
     )
     
     parser.add_argument(
         '--test-dir',
         type=str,
-        required=True,
-        help='Directory containing test dataset'
+        default='./data/tracings/test',
+        help='Directory containing test Tracings Dataset (default: ./data/tracings/test)'
     )
     
     parser.add_argument(

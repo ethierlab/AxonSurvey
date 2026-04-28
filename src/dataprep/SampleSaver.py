@@ -123,7 +123,7 @@ class SampleSaver:
                 print(f"opening image {img_path}")
                 
                 # Load image and create sliding window patches
-                full_image = tif_to_numpy(img_path)
+                full_image = tif_to_numpy(img_path, output_dims=2)
                 
                 # Check if image is large enough for sample dimensions
                 if sample_dimensions[0] > full_image.shape[0] or sample_dimensions[1] > full_image.shape[1]:
@@ -199,9 +199,13 @@ class SampleSaver:
         
         Args:
             size (int): Number of samples to create.
+            
+        Returns:
+            tuple: (total_samples_created, path_counts_dict)
         """
         sample_number = 0
         samples = self.sample(size)
+        path_counts = {}
 
         for img, mask, point, file in zip(*samples):
             sample_number += 1
@@ -230,6 +234,10 @@ class SampleSaver:
                 for part in file_parts: 
                     f.write(part)
                     f.write('\n')
+                    
+            path_counts[file] = path_counts.get(file, 0) + 1
+            
+        return sample_number, path_counts
     
     def sample(self, n):
         """

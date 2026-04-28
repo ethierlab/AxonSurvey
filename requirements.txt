@@ -1,9 +1,12 @@
 notebook
 torch
+torchvision
+transformers
 
 numpy
 matplotlib
 seaborn
+tqdm
 
 pillow
 imageio

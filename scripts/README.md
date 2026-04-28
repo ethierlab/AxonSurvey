@@ -6,19 +6,19 @@ This directory contains user-friendly Python scripts for executing the complete 
 
 The AxonSurvey workflow consists of the following main steps:
 
-1. **Setup Folder Structure** - Organize your images into the required directory structure
-2. **Add Images** - Place your image files in the appropriate folders
-3. **Sample Data** - Create training and test datasets by sampling patches from your images
-4. **Manual Tracing** - Label the sampled images by tracing axons (using NeuronJ or similar tools)
-5. **Train Model** - Train a neural network on your labeled data
-6. **Run Inference** - Apply the trained model to all images for segmentation
+1. **Setup Folder Structure** - Organize your raw full-size scans into an Images Dataset directory structure
+2. **Add Images** - Place your raw image files in the appropriate folders within the Images Dataset
+3. **Sample Data** - Create Tracings Datasets (training and test sets) by sampling patches from your Images Dataset
+4. **Manual Tracing** - Label the sampled patches in your Tracings Datasets by tracing axons (using NeuronJ or similar tools)
+5. **Train Model** - Train a neural network on your Tracings Datasets
+6. **Run Inference** - Apply the trained model to all images in your Images Dataset for segmentation
 7. **Analyze Results** - Use the Axon Survey GUI to analyze, compare, and download results
 
 ## Scripts
 
 ### 1. `setup_folder_structure.py`
 
-Creates the directory structure needed for organizing rat brain image data.
+Creates the directory structure needed for your Images Dataset (raw full-size rat brain scans).
 
 **Basic Usage:**
 ```bash
@@ -62,9 +62,14 @@ data/project_scans/
     └── ...
 ```
 
+**Minimal Test (fast execution):**
+```bash
+python scripts/1-setup_folder_structure.py --rats test_rat --bregmas b0 --regions test_region --output ./data/test_scans
+```
+
 ### 2. `sample_data.py`
 
-Samples image patches from your project data to create training and test datasets.
+Samples image patches from your Images Dataset to create Tracings Datasets (training and test sets).
 
 **Random Sampling (Recommended for beginners):**
 ```bash
@@ -82,12 +87,13 @@ python scripts/2-sample_data.py --nn --model-path ./data/trained_models/default_
 
 **Parameters:**
 - `--random` or `--nn`: Sampling strategy
-- `--input`: Directory containing your project images
-- `--output`: Directory where sampled dataset will be created (must be empty)
+- `--input`: Directory containing your Images Dataset (raw full-size scans)
+- `--output`: Directory where the Tracings Dataset will be created (must be empty)
 - `--size`: Number of samples to create
 - `--patch-size`: Size of each patch (assumes square, e.g., 128 = 128x128)
 - `--channel`: Channel name to sample from (default: "th")
 - `--no-stratify`: Disable region stratification (sample proportionally to area)
+- `--test-fake-tracings`: Generate fake random tracings for testing the training pipeline without manual labeling
 
 **Output Structure:**
 ```
@@ -101,13 +107,19 @@ data/tracings/train/
 └── ...
 ```
 
+**Minimal Test (generate fake tracings for train and test):**
+```bash
+python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_train --size 50 --patch-size 128 --test-fake-tracings
+python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_test --size 20 --patch-size 128 --test-fake-tracings
+```
+
 ### 3. `train_model.py`
 
-Trains a UNet neural network model for axon segmentation.
+Trains a UNet neural network model for axon segmentation using your Tracings Datasets.
 
 **Basic Usage:**
 ```bash
-python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 50
+python scripts/3-train_model.py --epochs 50
 ```
 
 **Advanced Usage:**
@@ -124,8 +136,8 @@ python scripts/3-train_model.py \
 ```
 
 **Parameters:**
-- `--train-dir`: Directory containing training dataset (with tracings)
-- `--test-dir`: Directory containing test dataset (with tracings)
+- `--train-dir`: Directory containing training Tracings Dataset (default: ./data/tracings/train)
+- `--test-dir`: Directory containing test Tracings Dataset (default: ./data/tracings/test)
 - `--output`: Path where trained model will be saved (.pth file)
 - `--epochs`: Number of training epochs (default: 50)
 - `--batch-size`: Batch size for training (default: 32)
@@ -140,9 +152,14 @@ python scripts/3-train_model.py \
 - Loss curves are automatically generated and displayed
 - The model is saved automatically when training completes
 
+**Minimal Test (fast execution, minimal resources):**
+```bash
+python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth --epochs 1 --batch-size 10
+```
+
 ### 4. `run_inference.py`
 
-Applies a trained model to all images in your project for segmentation.
+Applies a trained model to all images in your Images Dataset for segmentation.
 
 **Basic Usage:**
 ```bash
@@ -161,7 +178,7 @@ python scripts/4-run_inference.py \
 
 **Parameters:**
 - `--model`: Path to trained model (.pth file)
-- `--input`: Directory containing project images
+- `--input`: Directory containing your Images Dataset
 - `--output`: Directory where segmented images will be saved
 - `--input-size`: Input size for the model (must match training size, default: 128)
 - `--channel`: Channel name to use (default: "th")
@@ -176,6 +193,11 @@ data/segmented_images/
 │   │   └── ...
 │   └── ...
 └── ...
+```
+
+**Minimal Test (fast execution, minimal resources):**
+```bash
+python scripts/4-run_inference.py --model ./data/trained_models/test_model.pth --input ./data/test_scans --output ./data/test_segmented --input-size 32
 ```
 
 ## Complete Workflow Example
@@ -193,7 +215,7 @@ python scripts/1-setup_folder_structure.py \
 # Step 2: Add your images manually to the created folders
 # (Place .tif files in each region folder)
 
-# Step 3: Create training dataset
+# Step 3: Create training Tracings Dataset
 python scripts/2-sample_data.py \
     --random \
     --input ./data/project_scans \
@@ -201,7 +223,7 @@ python scripts/2-sample_data.py \
     --size 200 \
     --patch-size 128
 
-# Step 4: Create test dataset
+# Step 4: Create test Tracings Dataset
 python scripts/2-sample_data.py \
     --random \
     --input ./data/project_scans \
@@ -209,17 +231,13 @@ python scripts/2-sample_data.py \
     --size 100 \
     --patch-size 128
 
-# Step 5: Manually trace axons in the sampled images
+# Step 5: Manually trace axons in the sampled patches (Tracings Dataset)
 # (Use NeuronJ or similar tool to create tracings.tif files)
 
 # Step 6: Train the model
-python scripts/3-train_model.py \
-    --train-dir ./data/tracings/train \
-    --test-dir ./data/tracings/test \
-    --output ./data/trained_models/default_model.pth \
-    --epochs 50
+python scripts/3-train_model.py --epochs 50
 
-# Step 7: Run inference on all images
+# Step 7: Run inference on all images in your Images Dataset
 python scripts/4-run_inference.py \
     --model ./data/trained_models/default_model.pth \
     --input ./data/project_scans \
@@ -233,7 +251,7 @@ python gui/app.py
 
 ## Adding Images
 
-After creating the folder structure, you need to add your images:
+After creating the folder structure, you need to add your raw full-size scans to the Images Dataset:
 
 1. **Image Format**: Use `.tif` or `.tiff` format
 2. **Naming Convention**: 
@@ -248,7 +266,7 @@ After creating the folder structure, you need to add your images:
 
 ## Manual Tracing
 
-After sampling, you need to manually trace axons in the sampled images:
+After sampling, you need to manually trace axons in the sampled patches (Tracings Dataset):
 
 1. **Tool**: Use NeuronJ (ImageJ plugin) or similar tracing tools
 2. **Output**: Save tracings as `tracings.tif` in each sample folder:

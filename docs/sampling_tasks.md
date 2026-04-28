@@ -10,7 +10,7 @@ This document contains a list of dense, concrete tasks to finalize and improve t
 ## Medium Priority
 - [ ] **Delete Legacy Code**: `DataSampler.py` is now obsolete. Verify no scripts depend on it and safely delete the file.
 - [ ] **Implement `suggest_n()`**: The base `SamplingStrategy.suggest_n()` method currently returns `-1`. Implement meaningful logic to suggest an appropriate sample size based on the population and strategy.
-- [ ] **Clean Up Test Flags**: Remove or formalize the `test_fake_tracings` flag in `SampleSaver.create_dataset()`.
+- [x] **Clean Up Test Flags**: Remove or formalize the `test_fake_tracings` flag in `SampleSaver.create_dataset()`.
 
 ## Low Priority
 - [ ] **Review Area-Proportional Sampling**: Ensure that `stratify_regions=False` correctly samples proportionally to the area of each region across all edge cases.

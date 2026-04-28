@@ -32,14 +32,18 @@ def tif_to_numpy(image_path, output_dims=3, channel_number=None):
     # Handle channel selection
     if channel_number is not None:
         # Check if image has channels (at least 3D)
-        if img.ndim < 3: raise ValueError(f"Cannot select channel {channel_number} from {img.ndim}D image")
-        
-        # Check channel bounds
-        num_channels = img.shape[2]
-        if channel_number < 0: raise ValueError(f"channel_number must be non-negative, got {channel_number}")
-        if channel_number >= num_channels: raise ValueError(f"channel_number {channel_number} out of bounds for image with {num_channels} channels")
-        
-        img = img[:, :, channel_number].squeeze()
+        if img.ndim < 3:
+            if channel_number == 0:
+                pass # Already 2D, treat as 0th channel
+            else:
+                raise ValueError(f"Cannot select channel {channel_number} from {img.ndim}D image")
+        else:
+            # Check channel bounds
+            num_channels = img.shape[2]
+            if channel_number < 0: raise ValueError(f"channel_number must be non-negative, got {channel_number}")
+            if channel_number >= num_channels: raise ValueError(f"channel_number {channel_number} out of bounds for image with {num_channels} channels")
+            
+            img = img[:, :, channel_number].squeeze()
     else:
         if len(img.shape) == 3:
             img = img.transpose(1,2,0)

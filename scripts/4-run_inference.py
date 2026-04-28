@@ -2,13 +2,20 @@
 """
 Inference Script
 
-This script applies a trained model to all images in your project for segmentation.
+This script applies a trained model to all images in your Images Dataset for segmentation.
 The results can then be analyzed using the Axon Survey GUI.
+
+Input Requirements:
+- Trained model file (.pth) (input)
+- Valid Images Dataset directory containing raw full-size scans (input)
 
 Usage:
     python scripts/4-run_inference.py --model ./data/trained_models/default_model.pth --input ./data/project_scans --output ./data/segmented_images
     
     python scripts/4-run_inference.py --model ./data/trained_models/default_model.pth --input ./data/project_scans --output ./data/segmented_images --input-size 128 --batch-size 16
+    
+    # Minimal test
+    python scripts/4-run_inference.py --model ./data/trained_models/test_model.pth --input ./data/test_scans --output ./data/test_segmented --input-size 32
 
 For more information, see the README.md in the scripts folder.
 """
@@ -81,7 +88,7 @@ def run_inference(model_path, input_dir, output_dir, input_size=128, channel="th
     
     Args:
         model_path: Path to trained model (.pth file)
-        input_dir: Directory containing input images
+        input_dir: Directory containing the Images Dataset
         output_dir: Directory to save segmented images
         input_size: Input size for the model
         channel: Channel name to use
@@ -104,7 +111,7 @@ def run_inference(model_path, input_dir, output_dir, input_size=128, channel="th
     tracer = DLTracer(
         model_path=model_path,
         model_type=UNetModel,
-        input_size=input_size,
+        img_input_size=input_size,
         tracer_name="inference_tracer"
     )
     
@@ -153,7 +160,7 @@ def run_inference(model_path, input_dir, output_dir, input_size=128, channel="th
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run inference on all project images using a trained model",
+        description="Run inference on all images in your Images Dataset using a trained model",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -165,6 +172,9 @@ Examples:
   
   # Process specific channel
   python scripts/4-run_inference.py --model ./data/trained_models/default_model.pth --input ./data/project_scans --output ./data/segmented_images --channel dbh
+  
+  # Minimal test (fast execution, minimal resources)
+  python scripts/4-run_inference.py --model ./data/trained_models/test_model.pth --input ./data/test_scans --output ./data/test_segmented --input-size 32
 
 Note: The input directory should follow the structure created by scripts/1-setup_folder_structure.py
         """
@@ -181,7 +191,7 @@ Note: The input directory should follow the structure created by scripts/1-setup
         '--input',
         type=str,
         required=True,
-        help='Input directory containing project images'
+        help='Input directory containing the Images Dataset'
     )
     
     parser.add_argument(

@@ -106,6 +106,23 @@ class SamplingStrategy:
         """
         raise NotImplementedError("Subclasses must implement sample_indices.")
     
+    def distribute_remainder(self, exact_quantities, total_target):
+        """
+        Distributes the remainder of fractional quantities to reach the total_target.
+        Uses the largest remainder method.
+        """
+        floored = np.floor(exact_quantities).astype(int)
+        remainder = int(total_target - np.sum(floored))
+        
+        if remainder > 0:
+            fractions = exact_quantities - floored
+            # argsort sorts ascending, so we take the last 'remainder' elements
+            indices = np.argsort(fractions)[-remainder:]
+            for idx in indices:
+                floored[idx] += 1
+                
+        return floored
+
     def suggest_n(self):
         """Suggest sample size n (default -1)."""
         return -1
@@ -114,20 +131,25 @@ class SRS(SamplingStrategy):
     """
     Simple Random Sampling (SRS): randomly selects sample_size unique indices.
     """
-    def __init__(self, project_raw_image_dir, groups, channel, sample_dimensions, stratify_regions=True, **kwargs):
+    def __init__(self, project_raw_image_dir, groups, channel, sample_dimensions, stratify_regions=True, stratify_group=True, **kwargs):
         """Initialize SRS sampling strategy."""
-        super().__init__(project_raw_image_dir, groups, channel, sample_dimensions, stratify_regions=stratify_regions, stratify_group=True, **kwargs)
+        super().__init__(project_raw_image_dir, groups, channel, sample_dimensions, stratify_regions=stratify_regions, stratify_group=stratify_group, **kwargs)
 
     def sample_indices(self, n):
         """Sample indices for each group and region."""
-        n_per_group = int(n / self.get_group_count())
+        num_groups = self.get_group_count()
+        group_exact = np.full(num_groups, n / num_groups)
+        group_targets = self.distribute_remainder(group_exact, n)
+        
         selected = []
-        for group, region_counts in zip(self.population, self.region_count):
+        for group, region_counts, group_target in zip(self.population, self.region_count, group_targets):
 
             if self.stratify_regions: sampling_proportions = np.full(len(group,), 1/len(group))
             else : sampling_proportions = (np.array(region_counts) / np.sum(region_counts)) # proportionnal to img size
 
-            sampling_quantities = (n_per_group * sampling_proportions).astype(int)
+            exact_quantities = group_target * sampling_proportions
+            sampling_quantities = self.distribute_remainder(exact_quantities, group_target)
+            
             selected_indices = [self.get_n_random_indices_in_list(quantity, region) for region, quantity in zip(group, sampling_quantities)]
             selected.append(selected_indices)
         return selected

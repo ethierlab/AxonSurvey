@@ -2,12 +2,18 @@
 """
 Setup Folder Structure Script
 
-This script creates the directory structure needed for organizing rat brain image data.
+This script creates the directory structure needed for your Images Dataset (raw full-size rat brain scans).
 It follows the structure: project_scans/rat_id/bregma/region/
+
+Input Requirements:
+- Configuration JSON file (if using --config)
 
 Usage:
     python scripts/1-setup_folder_structure.py --config config.json
     python scripts/1-setup_folder_structure.py --rats rat301,rat302 --bregmas b516,b468 --regions contra_inner,contra_outer --output ./data/project_scans
+    
+    # Minimal test
+    python scripts/1-setup_folder_structure.py --rats test_rat --bregmas b0 --regions test_region --output ./data/test_scans
 
 For more information, see the README.md in the scripts folder.
 """
@@ -33,14 +39,14 @@ def load_config_from_json(config_path):
 
 def create_folder_structure(rat_list, bregma_dict, subregion_list, base_path):
     """
-    Create folder structure for rat brain data.
+    Create folder structure for the Images Dataset.
     
     Args:
         rat_list: List of rat IDs (e.g., ["rat301", "rat302"])
         bregma_dict: Dictionary mapping rat IDs to lists of bregma values
                     (e.g., {"rat301": ["b516", "b468"], "rat302": ["b252"]})
         subregion_list: List of region names (e.g., ["contra_inner", "contra_outer"])
-        base_path: Base directory path for the project scans
+        base_path: Base directory path for the Images Dataset
     """
     # Ensure base path exists
     os.makedirs(base_path, exist_ok=True)
@@ -88,7 +94,7 @@ def create_example_config(output_path="example_config.json"):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create folder structure for rat brain image data",
+        description="Create folder structure for your Images Dataset (raw full-size scans)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -100,6 +106,9 @@ Examples:
   
   # Create example config file
   python scripts/1-setup_folder_structure.py --create-example-config
+  
+  # Minimal test (fast execution, minimal resources)
+  python scripts/1-setup_folder_structure.py --rats test_rat --bregmas b0 --regions test_region --output ./data/test_scans
 
 Note: The bregma_dict format in JSON should be:
 {
@@ -179,10 +188,10 @@ Note: The bregma_dict format in JSON should be:
     # Create folder structure
     try:
         create_folder_structure(rat_list, bregma_dict, subregion_list, base_path)
-        print("\n✓ Setup complete! You can now add your images to the created folders.")
-        print("\nNext steps:")
-        print("  1. Add your .tif images to the appropriate folders")
-        print("  2. Run the sampling script to create training/test datasets")
+    print("\n✓ Setup complete! You can now add your raw full-size scans to the created folders.")
+    print("\nNext steps:")
+    print("  1. Add your .tif images to the appropriate folders in your Images Dataset")
+    print("  2. Run the sampling script to create training/test Tracings Datasets")
         print("  3. See README.md for detailed instructions")
     except Exception as e:
         print(f"Error: {e}")
