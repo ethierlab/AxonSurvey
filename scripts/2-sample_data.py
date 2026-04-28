@@ -17,8 +17,8 @@ Usage:
     python scripts/2-sample_data.py --nn --model-path ./data/trained_models/default_model.pth --input ./data/project_scans --output ./data/tracings/train --size 100
     
     # Minimal test (generate fake tracings for train and test)
-    python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_train --size 50 --patch-size 128 --test-fake-tracings
-    python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_test --size 20 --patch-size 128 --test-fake-tracings
+    # python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_train --size 50 --patch-size 128 --test-fake-tracings
+    # python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_test --size 20 --patch-size 128 --test-fake-tracings
 
 For more information, see the README.md in the scripts folder.
 """

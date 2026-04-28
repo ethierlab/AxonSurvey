@@ -22,19 +22,12 @@ Creates the directory structure needed for your Images Dataset (raw full-size ra
 
 **Basic Usage:**
 ```bash
-python scripts/1-setup_folder_structure.py --rats rat301,rat302 --bregmas b516,b468 --regions contra_inner,contra_outer --output ./data/project_scans
+python scripts/1-setup_folder_structure.py
 ```
 
-**Using a Configuration File:**
-```bash
-# First, create an example config
-python scripts/1-setup_folder_structure.py --create-example-config
+This script automatically uses the configuration file located at `scripts/configs/image_dataset_config.json`. You can edit this file to specify your rats, bregmas, regions, and base path.
 
-# Edit the generated example_config.json, then:
-python scripts/1-setup_folder_structure.py --config example_config.json
-```
-
-**Configuration File Format:**
+**Configuration File Format (`scripts/configs/image_dataset_config.json`):**
 ```json
 {
     "rat_list": ["rat301", "rat302"],
@@ -60,11 +53,6 @@ data/project_scans/
 │       └── ...
 └── rat302/
     └── ...
-```
-
-**Minimal Test (fast execution):**
-```bash
-python scripts/1-setup_folder_structure.py --rats test_rat --bregmas b0 --regions test_region --output ./data/test_scans
 ```
 
 ### 2. `sample_data.py`
@@ -107,19 +95,27 @@ data/tracings/train/
 └── ...
 ```
 
-**Minimal Test (generate fake tracings for train and test):**
-```bash
-python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_train --size 50 --patch-size 128 --test-fake-tracings
-python scripts/2-sample_data.py --random --input ./data/project_scans --output ./data/tracings/dummy_test --size 20 --patch-size 128 --test-fake-tracings
-```
-
 ### 3. `train_model.py`
 
 Trains a UNet neural network model for axon segmentation using your Tracings Datasets.
 
 **Basic Usage:**
 ```bash
-python scripts/3-train_model.py --epochs 50
+python scripts/3-train_model.py
+```
+
+This script automatically uses the hyperparameters specified in `scripts/configs/training_config.json`. You can modify this file to adjust the training process.
+
+**Configuration File Format (`scripts/configs/training_config.json`):**
+```json
+{
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.0001,
+    "use_cldice_loss": false,
+    "pos_weight": 1.0,
+    "axon_thickness": 1
+}
 ```
 
 **Advanced Usage:**
@@ -128,9 +124,6 @@ python scripts/3-train_model.py \
     --train-dir ./data/tracings/train \
     --test-dir ./data/tracings/test \
     --output ./data/trained_models/default_model.pth \
-    --epochs 100 \
-    --batch-size 32 \
-    --learning-rate 0.0001 \
     --input-size 128 \
     --display-epochs 5
 ```
@@ -139,9 +132,6 @@ python scripts/3-train_model.py \
 - `--train-dir`: Directory containing training Tracings Dataset (default: ./data/tracings/train)
 - `--test-dir`: Directory containing test Tracings Dataset (default: ./data/tracings/test)
 - `--output`: Path where trained model will be saved (.pth file)
-- `--epochs`: Number of training epochs (default: 50)
-- `--batch-size`: Batch size for training (default: 32)
-- `--learning-rate`: Learning rate (default: 0.0001)
 - `--input-size`: Input image size (default: 128)
 - `--display-epochs`: Display progress every N epochs (default: 5)
 - `--no-scheduler`: Disable learning rate scheduler
@@ -151,11 +141,6 @@ python scripts/3-train_model.py \
 - Training loss and validation metrics are displayed periodically
 - Loss curves are automatically generated and displayed
 - The model is saved automatically when training completes
-
-**Minimal Test (fast execution, minimal resources):**
-```bash
-python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth --epochs 1 --batch-size 10
-```
 
 ### 4. `run_inference.py`
 
@@ -195,22 +180,14 @@ data/segmented_images/
 └── ...
 ```
 
-**Minimal Test (fast execution, minimal resources):**
-```bash
-python scripts/4-run_inference.py --model ./data/trained_models/test_model.pth --input ./data/test_scans --output ./data/test_segmented --input-size 32
-```
-
 ## Complete Workflow Example
 
 Here's a complete example of using all scripts in sequence:
 
 ```bash
 # Step 1: Create folder structure
-python scripts/1-setup_folder_structure.py \
-    --rats rat301,rat302 \
-    --bregmas b516,b468 \
-    --regions contra_inner,contra_outer,ipsi_inner,ipsi_outer \
-    --output ./data/project_scans
+# (Edit scripts/configs/image_dataset_config.json first)
+python scripts/1-setup_folder_structure.py
 
 # Step 2: Add your images manually to the created folders
 # (Place .tif files in each region folder)
@@ -235,7 +212,8 @@ python scripts/2-sample_data.py \
 # (Use NeuronJ or similar tool to create tracings.tif files)
 
 # Step 6: Train the model
-python scripts/3-train_model.py --epochs 50
+# (Adjust parameters in scripts/configs/training_config.json if needed)
+python scripts/3-train_model.py
 
 # Step 7: Run inference on all images in your Images Dataset
 python scripts/4-run_inference.py \
@@ -314,7 +292,7 @@ After running inference, you can analyze results using the web-based GUI:
 
 **"CUDA not available"**
 - Training will run on CPU (slower but functional)
-- Solution: Install CUDA and PyTorch with GPU support if you have a compatible GPU
+- Solution: Ensure your NVIDIA display drivers are up to date. If issues persist, PyTorch may have installed the CPU-only version. Fix this by running: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118`
 
 **"Model file not found"**
 - Check that the model path is correct

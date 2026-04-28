@@ -9,12 +9,13 @@ Input Requirements:
 - Valid test Tracings Dataset directory with ground truth tracings (input)
 
 Usage:
-    python scripts/3-train_model.py --epochs 50
+    python scripts/3-train_model.py
     
-    python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 50 --batch-size 32 --learning-rate 0.0001
+    python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth
     
     # Minimal test
-    python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth --epochs 1 --batch-size 10
+    # Edit scripts/configs/training_config.json to have minimal epochs/batch_size, then run:
+    # python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth
 
 For more information, see the README.md in the scripts folder.
 """
@@ -58,7 +59,8 @@ def check_dataset(dataset_path, dataset_name):
 
 
 def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learning_rate, 
-                     input_size, display_epochs, use_scheduler=True):
+                     input_size, display_epochs, use_scheduler=True, 
+                     use_cldice_loss=False, pos_weight=1.0, axon_thickness=1):
     """
     Train a UNet model for axon segmentation.
     
@@ -72,6 +74,9 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
         input_size: Input image size (assumes square)
         display_epochs: Display progress every N epochs
         use_scheduler: Whether to use cosine learning rate scheduler
+        use_cldice_loss: Whether to use clDice loss instead of BCE
+        pos_weight: Positive weight for BCEWithLogitsLoss
+        axon_thickness: Thickness to apply to ground truth tracings
     """
     print("=" * 60)
     print("Neural Network Training")
@@ -90,9 +95,10 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
     # Create datasets
     print(f"\nLoading datasets...")
     print(f"  Input size: {input_size}x{input_size}")
+    print(f"  Axon thickness: {axon_thickness}")
     
-    train_dataset = SimpleAxonDataset(train_dir, input_size=input_size)
-    test_dataset = SimpleAxonDataset(test_dir, input_size=input_size)
+    train_dataset = SimpleAxonDataset(train_dir, input_size=input_size, axon_thiccness=axon_thickness)
+    test_dataset = SimpleAxonDataset(test_dir, input_size=input_size, axon_thiccness=axon_thickness)
     
     print(f"  Training samples: {len(train_dataset)}")
     print(f"  Test samples: {len(test_dataset)}")
@@ -101,18 +107,25 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
     print(f"\nCreating UNet model...")
     model_type = UNetModel
     
-    # Setup loss function (using soft_dice_cldice if available, otherwise BCE)
-    try:
-        from clDice.cldice_loss.pytorch.cldice import soft_dice_cldice
-        criterion = soft_dice_cldice(iter_=10, alpha=0.3, smooth=0.0)
-        print("  Using soft_dice_cldice loss function")
-    except ImportError:
+    # Setup loss function
+    if use_cldice_loss:
+        try:
+            from clDice.cldice_loss.pytorch.cldice import soft_dice_cldice
+            criterion = soft_dice_cldice(iter_=10, alpha=0.3, smooth=0.0)
+            print("  Using soft_dice_cldice loss function")
+        except ImportError:
+            from torch.nn import BCEWithLogitsLoss
+            pos_weight_tensor = torch.tensor([pos_weight]).to(device) if pos_weight != 1.0 else None
+            criterion = BCEWithLogitsLoss(pos_weight=pos_weight_tensor)
+            print(f"  Using BCEWithLogitsLoss (pos_weight={pos_weight}) (clDice not available)")
+            print("  * Note: To use clDice loss (recommended for tubular structures like axons),")
+            print("  * clone the repository into your project root by running:")
+            print("  * git clone https://github.com/jocpae/clDice.git")
+    else:
         from torch.nn import BCEWithLogitsLoss
-        criterion = BCEWithLogitsLoss()
-        print("  Using BCEWithLogitsLoss (clDice not available)")
-        print("  * Note: To use clDice loss (recommended for tubular structures like axons),")
-        print("  * clone the repository into your project root by running:")
-        print("  * git clone https://github.com/jocpae/clDice.git")
+        pos_weight_tensor = torch.tensor([pos_weight]).to(device) if pos_weight != 1.0 else None
+        criterion = BCEWithLogitsLoss(pos_weight=pos_weight_tensor)
+        print(f"  Using BCEWithLogitsLoss (pos_weight={pos_weight})")
     
     # Setup scheduler
     scheduler_func = None
@@ -125,6 +138,9 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
     print(f"  Epochs: {epochs}")
     print(f"  Batch size: {batch_size}")
     print(f"  Learning rate: {learning_rate}")
+    print(f"  Axon thickness: {axon_thickness}")
+    print(f"  Use clDice loss: {use_cldice_loss}")
+    print(f"  BCE pos_weight: {pos_weight}")
     print(f"  Display every: {display_epochs} epochs")
     
     # Ensure output directory exists
@@ -161,7 +177,10 @@ def train_unet_model(train_dir, test_dir, output_path, epochs, batch_size, learn
             "learning_rate": learning_rate,
             "batch_size": batch_size,
             "input_size": input_size,
+            "axon_thickness": axon_thickness,
             "criterion": str(criterion),
+            "use_cldice_loss": use_cldice_loss,
+            "pos_weight": pos_weight,
             "scheduler": "cosine_with_warmup" if use_scheduler else "none",
             "training_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -191,16 +210,18 @@ def main():
         epilog="""
 Examples:
   # Basic training with default parameters
-  python scripts/3-train_model.py --epochs 50
+  python scripts/3-train_model.py
   
   # Training with custom parameters
-  python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --epochs 100 --batch-size 32 --learning-rate 0.0001 --input-size 256
+  python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/default_model.pth --input-size 256
   
   # Quick test training (few epochs)
-  python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/test_model.pth --epochs 5
+  # (Edit scripts/configs/training_config.json to lower epochs, then run:)
+  # python scripts/3-train_model.py --train-dir ./data/tracings/train --test-dir ./data/tracings/test --output ./data/trained_models/test_model.pth
   
   # Minimal test (fast execution, minimal resources)
-  python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth --epochs 1 --batch-size 10
+  # (Edit scripts/configs/training_config.json to minimal epochs/batch_size, then run:)
+  # python scripts/3-train_model.py --train-dir ./data/tracings/dummy_train --test-dir ./data/tracings/dummy_test --output ./data/trained_models/test_model.pth
 
 Note: The training and test directories should contain Tracings Datasets created by scripts/2-sample_data.py
         """
@@ -228,27 +249,6 @@ Note: The training and test directories should contain Tracings Datasets created
     )
     
     parser.add_argument(
-        '--epochs',
-        type=int,
-        default=50,
-        help='Number of training epochs (default: 50)'
-    )
-    
-    parser.add_argument(
-        '--batch-size',
-        type=int,
-        default=32,
-        help='Batch size for training (default: 32)'
-    )
-    
-    parser.add_argument(
-        '--learning-rate',
-        type=float,
-        default=0.0001,
-        help='Learning rate (default: 0.0001)'
-    )
-    
-    parser.add_argument(
         '--input-size',
         type=int,
         default=128,
@@ -270,6 +270,23 @@ Note: The training and test directories should contain Tracings Datasets created
     
     args = parser.parse_args()
     
+    # Load training config
+    import json
+    config_path = os.path.join(os.path.dirname(__file__), 'configs', 'training_config.json')
+    if not os.path.exists(config_path):
+        print(f"Error: Training configuration file not found: {config_path}")
+        sys.exit(1)
+        
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+        
+    epochs = config.get('epochs', 50)
+    batch_size = config.get('batch_size', 32)
+    learning_rate = config.get('learning_rate', 0.0001)
+    use_cldice_loss = config.get('use_cldice_loss', False)
+    pos_weight = config.get('pos_weight', 1.0)
+    axon_thickness = config.get('axon_thickness', 1)
+    
     # Validate arguments
     if not os.path.exists(args.train_dir):
         print(f"Error: Training directory does not exist: {args.train_dir}")
@@ -279,14 +296,25 @@ Note: The training and test directories should contain Tracings Datasets created
         print(f"Error: Test directory does not exist: {args.test_dir}")
         sys.exit(1)
     
-    if args.epochs <= 0:
-        parser.error("--epochs must be a positive integer")
+    if epochs <= 0:
+        print("Error: epochs in config must be a positive integer")
+        sys.exit(1)
     
-    if args.batch_size <= 0:
-        parser.error("--batch-size must be a positive integer")
+    if batch_size <= 0:
+        print("Error: batch_size in config must be a positive integer")
+        sys.exit(1)
     
-    if args.learning_rate <= 0:
-        parser.error("--learning-rate must be a positive number")
+    if learning_rate <= 0:
+        print("Error: learning_rate in config must be a positive number")
+        sys.exit(1)
+        
+    if pos_weight <= 0:
+        print("Error: pos_weight in config must be a positive number")
+        sys.exit(1)
+        
+    if axon_thickness < 1:
+        print("Error: axon_thickness in config must be at least 1")
+        sys.exit(1)
     
     if args.input_size <= 0:
         parser.error("--input-size must be a positive integer")
@@ -296,12 +324,15 @@ Note: The training and test directories should contain Tracings Datasets created
         train_dir=args.train_dir,
         test_dir=args.test_dir,
         output_path=args.output,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        learning_rate=args.learning_rate,
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
         input_size=args.input_size,
         display_epochs=args.display_epochs,
-        use_scheduler=not args.no_scheduler
+        use_scheduler=not args.no_scheduler,
+        use_cldice_loss=use_cldice_loss,
+        pos_weight=pos_weight,
+        axon_thickness=axon_thickness
     )
 
 

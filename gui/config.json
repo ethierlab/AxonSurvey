@@ -5,7 +5,7 @@
     "TESTING_DIR": "./data/manual_tracings/2025-05-31_rat301_test",
     "EXPERIMENTS_DIR": "./data/experiments",
     "FIGURES_DIR": "./data/figures",
-    "USED_SEGMENTATION_MODEL_NAME": "DLTr_GIGAAug",
+    "USED_SEGMENTATION_MODEL_NAME": "default_model",
     "USED_SEGMENTATION_MODEL_PATH": "./data/trained_models/default_model.pth",
     "STATIC_DIR": "static",
     "TEMPLATES_DIR": "templates",

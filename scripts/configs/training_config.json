@@ -1,0 +1,8 @@
+{
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.0001,
+    "use_cldice_loss": false,
+    "pos_weight": 1.0,
+    "axon_thickness": 1
+}

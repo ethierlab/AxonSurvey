@@ -213,7 +213,7 @@ class SampleSaver:
             os.makedirs(save_path, exist_ok=True)
             
             # Save uncompressed for direct viewing
-            numpy_to_tif(img, os.path.join(save_path, "img.tif"), compression=False)
+            numpy_to_tif(img.astype(np.uint8), os.path.join(save_path, "img.tif"), compression=False)
             numpy_to_tif(mask.astype(np.uint8) * 255, os.path.join(save_path, "outer_mask.tif"), compression=False)
 
             if self.test_fake_tracings:

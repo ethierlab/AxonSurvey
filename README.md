@@ -49,9 +49,13 @@ This project provides a complete pipeline for automated axon detection and quant
    ```
 
 4. **GPU Setup (optional but recommended):**
-   - Install CUDA Toolkit (version 11.0 or higher)
-   - Install cuDNN library
+   - Ensure your NVIDIA Display Drivers are up to date.
    - Verify PyTorch GPU support: `python -c "import torch; print(torch.cuda.is_available())"`
+   
+   *Note: If `torch.cuda.is_available()` returns `False` or you experience package-level CUDA issues, PyTorch may have defaulted to the CPU version. To fix this, manually install the CUDA-specific version:*
+   ```bash
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+   ```
 
 **Dependencies:**
 The project relies on several key libraries including PyTorch, OpenCV, NumPy, scikit-image, and various scientific computing packages. See `requirements.txt` for the complete list.

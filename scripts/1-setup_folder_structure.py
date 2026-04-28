@@ -6,14 +6,14 @@ This script creates the directory structure needed for your Images Dataset (raw 
 It follows the structure: project_scans/rat_id/bregma/region/
 
 Input Requirements:
-- Configuration JSON file (if using --config)
+- Configuration JSON file (located at scripts/configs/image_dataset_config.json)
 
 Usage:
-    python scripts/1-setup_folder_structure.py --config config.json
-    python scripts/1-setup_folder_structure.py --rats rat301,rat302 --bregmas b516,b468 --regions contra_inner,contra_outer --output ./data/project_scans
+    python scripts/1-setup_folder_structure.py
     
     # Minimal test
-    python scripts/1-setup_folder_structure.py --rats test_rat --bregmas b0 --regions test_region --output ./data/test_scans
+    # Edit scripts/configs/image_dataset_config.json to have minimal rats/bregmas/regions, then run:
+    # python scripts/1-setup_folder_structure.py
 
 For more information, see the README.md in the scripts folder.
 """
@@ -93,105 +93,26 @@ def create_example_config(output_path="example_config.json"):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Create folder structure for your Images Dataset (raw full-size scans)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Using a JSON config file
-  python scripts/1-setup_folder_structure.py --config my_config.json
-  
-  # Using command-line arguments
-  python scripts/1-setup_folder_structure.py --rats rat301,rat302 --bregmas b516,b468 --regions contra_inner,contra_outer --output ./data/project_scans
-  
-  # Create example config file
-  python scripts/1-setup_folder_structure.py --create-example-config
-  
-  # Minimal test (fast execution, minimal resources)
-  python scripts/1-setup_folder_structure.py --rats test_rat --bregmas b0 --regions test_region --output ./data/test_scans
-
-Note: The bregma_dict format in JSON should be:
-{
-  "rat301": ["b516", "b468"],
-  "rat302": ["b252"]
-}
-        """
-    )
+    print("Using configuration from scripts/configs/image_dataset_config.json")
+    config_path = os.path.join(os.path.dirname(__file__), 'configs', 'image_dataset_config.json')
     
-    parser.add_argument(
-        '--config',
-        type=str,
-        help='Path to JSON configuration file'
-    )
-    
-    parser.add_argument(
-        '--rats',
-        type=str,
-        help='Comma-separated list of rat IDs (e.g., "rat301,rat302")'
-    )
-    
-    parser.add_argument(
-        '--bregmas',
-        type=str,
-        help='Comma-separated list of bregma values (applied to all rats)'
-    )
-    
-    parser.add_argument(
-        '--regions',
-        type=str,
-        help='Comma-separated list of region names (e.g., "contra_inner,contra_outer")'
-    )
-    
-    parser.add_argument(
-        '--output',
-        type=str,
-        default='./data/project_scans',
-        help='Base output directory path (default: ./data/project_scans)'
-    )
-    
-    parser.add_argument(
-        '--create-example-config',
-        action='store_true',
-        help='Create an example configuration file and exit'
-    )
-    
-    args = parser.parse_args()
-    
-    # Create example config if requested
-    if args.create_example_config:
-        create_example_config()
-        return
-    
-    # Load configuration
-    if args.config:
-        if not os.path.exists(args.config):
-            print(f"Error: Configuration file not found: {args.config}")
-            sys.exit(1)
-        config = load_config_from_json(args.config)
-        rat_list = config['rat_list']
-        bregma_dict = config['bregma_dict']
-        subregion_list = config['subregion_list']
-        base_path = config.get('base_path', args.output)
-    else:
-        # Parse command-line arguments
-        if not args.rats or not args.bregmas or not args.regions:
-            parser.error("Either --config or all of --rats, --bregmas, and --regions must be provided")
+    if not os.path.exists(config_path):
+        print(f"Error: Configuration file not found: {config_path}")
+        sys.exit(1)
         
-        rat_list = [r.strip() for r in args.rats.split(',')]
-        bregma_list = [b.strip() for b in args.bregmas.split(',')]
-        subregion_list = [r.strip() for r in args.regions.split(',')]
-        
-        # Create bregma_dict with same bregmas for all rats
-        bregma_dict = {rat: bregma_list for rat in rat_list}
-        base_path = args.output
+    config = load_config_from_json(config_path)
+    rat_list = config['rat_list']
+    bregma_dict = config['bregma_dict']
+    subregion_list = config['subregion_list']
+    base_path = config.get('base_path', './data/project_scans')
     
     # Create folder structure
     try:
         create_folder_structure(rat_list, bregma_dict, subregion_list, base_path)
-    print("\n✓ Setup complete! You can now add your raw full-size scans to the created folders.")
-    print("\nNext steps:")
-    print("  1. Add your .tif images to the appropriate folders in your Images Dataset")
-    print("  2. Run the sampling script to create training/test Tracings Datasets")
+        print("\n✓ Setup complete! You can now add your raw full-size scans to the created folders.")
+        print("\nNext steps:")
+        print("  1. Add your .tif images to the appropriate folders in your Images Dataset")
+        print("  2. Run the sampling script to create training/test Tracings Datasets")
         print("  3. See README.md for detailed instructions")
     except Exception as e:
         print(f"Error: {e}")

@@ -60,7 +60,7 @@ REM Start Flask and open browser
 echo Starting server and opening browser... Forgive the delay, the backend is python
 echo If there's an error when browser opens, try refreshing a couple times
 timeout /t 10 /nobreak
-start "" "firefox.exe" --new-window "http://localhost:5001"
+start "" "chrome.exe" --new-window "http://localhost:5001"
 
 REM This runs after the server stops (Ctrl+C or app closes)
 echo.
